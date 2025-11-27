@@ -1,4 +1,4 @@
-package api
+package configs
 
 type Configuration struct {
 	JwtBasedPort        string
