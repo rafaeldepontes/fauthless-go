@@ -1,28 +1,29 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rafaeldepontes/auth-go/api"
+	"github.com/rafaeldepontes/auth-go/configs"
+	"github.com/rafaeldepontes/auth-go/internal/domain"
 	"github.com/rafaeldepontes/auth-go/internal/handler"
 )
 
 func main() {
-	var app *api.Application
-	var config *api.Configuration
+	var app *domain.Application
+	var config *configs.Configuration
 
 	config, app, db, err := api.Init()
 	if err != nil {
-		panic(err)
+		app.Logger.Fatalf("[ERROR] An error occurred: %v", err)
 	}
 	defer db.Close()
 
 	var r *chi.Mux = chi.NewRouter()
 	handler.Handler(r, app)
 
-	fmt.Printf("API running at %v\n", config.CookieBasedPort)
+	app.Logger.Infof("[LOG] API running at %v", config.CookieBasedPort)
 
 	http.ListenAndServe(config.CookieBasedPort, r)
 }
