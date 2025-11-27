@@ -1,5 +1,16 @@
 package main
 
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/rafaeldepontes/auth-go/api"
+)
+
 func main() {
-	println("It's alive!")
+	config := api.Init()
+
+	fmt.Printf("API running at %v\n", config.CookieBasedPort)
+
+	http.ListenAndServe(config.CookieBasedPort, nil)
 }
