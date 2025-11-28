@@ -26,6 +26,19 @@ This is an area of ​​study aimed at testing different ways to create an auth
 - Docker (for running PostgreSQL locally) or an accessible Postgres instance
 - Make sure the `DATABASE_URL` environment variable points to a reachable Postgres database
 
+## Database Schema
+
+Use the schema below to initialize the database:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id BIGSERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  age INT NOT NULL
+);
+```
+
 ## Environment variables
 
 Create a `.env` file (example provided in the project). The service expects at least:
@@ -47,6 +60,8 @@ Create a `.env` file (example provided in the project). The service expects at l
    cd go-full-crud
    ```
 
+````
+
 2. Create a `.env` file (or use the provided `.env.example`) and set `DATABASE_URL`, `JWT_PORT`, `COOKIE_PORT` and `JWT_REFRESH_PORT` as needed.
 
 3. Start PostgreSQL with Docker:
@@ -67,3 +82,4 @@ Adjust user/password/db name to match your `DATABASE_URL` if necessary.
    go run cmd/jwt-based/main.go            # This one for the JWT but without the refresh token, only the expiration time
    go run cmd/jwt-refresh-based/main.go    # This one for the JWT with refresh token.
    ```
+````
