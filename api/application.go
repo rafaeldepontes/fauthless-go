@@ -7,5 +7,6 @@ import (
 
 type Application struct {
 	UserService *service.UserService
+	AuthService *service.AuthService
 	Logger      *log.Logger
 }

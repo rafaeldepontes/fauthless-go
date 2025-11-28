@@ -50,9 +50,11 @@ func Init() (*configs.Configuration, *Application, *sql.DB, error) {
 
 	var userRepository *repository.UserRepository = repository.NewUserRepository(db)
 	var userService *service.UserService = service.NewUserService(userRepository, logger)
+	var authService *service.AuthService = service.NewAuthService(userRepository, logger)
 
 	application := &Application{
 		UserService: userService,
+		AuthService: authService,
 		Logger:      logger,
 	}
 
