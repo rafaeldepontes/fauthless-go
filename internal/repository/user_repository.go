@@ -74,3 +74,34 @@ func (repo *UserRepository) FindUserById(id uint) (User, error) {
 
 	return user, nil
 }
+
+// FindUserByUsername search for an user by his username
+// returns the user and an error if any.
+func (repo *UserRepository) FindUserByUsername(username string) (User, error) {
+	var user User
+	query := `SELECT id FROM users WHERE username = $1`
+
+	err := repo.db.QueryRow(query, username).Scan(&user.Id)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+func (repo *UserRepository) RegisterUser(user *User) error {
+	query := `
+	INSERT INTO users (username, password, age)
+	VALUES ($1, $2, $3) 
+	RETURNING id
+	`
+
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+
+	stmt.Exec(user.Username, user.HashedPassword, user.Age)
+
+	return nil
+}
