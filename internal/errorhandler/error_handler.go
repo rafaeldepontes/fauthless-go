@@ -10,9 +10,13 @@ import (
 )
 
 var ErrorUsernameNotFound = errors.New("User not found")
+var ErrorInvalidMethod = errors.New("Invalid method")
+var ErrorUserAlreadyExists = errors.New("User already exist")
 
 var ErrorIdIsRequired = errors.New("Identifier is required")
-var ErrorUsernameIsRequired =  errors.New("Username is required")
+var ErrorUsernameIsRequired = errors.New("Username is required")
+var ErrorPasswordIsRequired = errors.New("Password is required")
+var ErrorAgeIsRequired = errors.New("Age is required")
 
 const BrazilianDateTimeFormat = "02/01/2006 15:04:05"
 
