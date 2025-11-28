@@ -58,6 +58,8 @@ func (us *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pageModel)
 }
 
+// FindUserById list an user by his id and returns a none
+// pagination result and a few datas missing for LGPD
 func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	us.Logger.Infof("Listing user by id - %v", idStr)
