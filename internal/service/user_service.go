@@ -12,20 +12,20 @@ import (
 )
 
 type UserService struct {
-	Logger         *log.Logger
 	userRepository *repository.UserRepository
+	Logger         *log.Logger
 }
 
-// NewUserService initialize a new UserService containing a UserRepository
+// NewUserService initialize a new UserService containing a UserRepository.
 func NewUserService(userRepo *repository.UserRepository, logg *log.Logger) *UserService {
 	return &UserService{
-		Logger:         logg,
 		userRepository: userRepo,
+		Logger:         logg,
 	}
 }
 
 // FindAllUsers list all the users without a filter and returns each
-// one with pagination and a few datas missing for LGPD
+// one with pagination and a few datas missing for LGPD.
 func (us *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
 	us.Logger.Infoln("Listing all the users in the database...")
 
@@ -59,7 +59,7 @@ func (us *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // FindUserById list an user by his id and returns a none
-// pagination result and a few datas missing for LGPD
+// pagination result and a few datas missing for LGPD.
 func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	us.Logger.Infof("Listing user by id - %v", idStr)
@@ -83,4 +83,12 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(user)
+}
+
+func (us UserService) UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (us UserService) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+
 }
