@@ -63,30 +63,30 @@ func (repo *UserRepository) FindAllUsers(size, page int) ([]User, int, error) {
 
 // FindUserById search for an user by his id
 // returns the user and an error if any.
-func (repo *UserRepository) FindUserById(id uint) (User, error) {
+func (repo *UserRepository) FindUserById(id uint) (*User, error) {
 	var user User
 	query := `SELECT id, username, age FROM users WHERE id = $1`
 
 	err := repo.db.QueryRow(query, id).Scan(&user.Id, &user.Username, &user.Age)
 	if err != nil {
-		return User{}, err
+		return &User{}, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 // FindUserByUsername search for an user by his username
 // returns the user and an error if any.
-func (repo *UserRepository) FindUserByUsername(username string) (User, error) {
+func (repo *UserRepository) FindUserByUsername(username string) (*User, error) {
 	var user User
-	query := `SELECT id FROM users WHERE username = $1`
+	query := `SELECT password FROM users WHERE username = $1`
 
-	err := repo.db.QueryRow(query, username).Scan(&user.Id)
+	err := repo.db.QueryRow(query, username).Scan(&user.HashedPassword)
 	if err != nil {
-		return User{}, err
+		return &User{}, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (repo *UserRepository) RegisterUser(user *User) error {
