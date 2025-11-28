@@ -46,6 +46,7 @@ func (us *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
+		return
 	}
 
 	pageModel := pagination.NewPagination(users, uint(currentPage), uint(totalRecords), uint(size))
@@ -67,6 +68,7 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	if idStr == "" {
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorIdIsRequired, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrorIdIsRequired)
+		return
 	}
 
 	pathId, _ := strconv.Atoi(idStr)
@@ -77,6 +79,7 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameNotFound, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

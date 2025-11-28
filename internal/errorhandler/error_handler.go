@@ -10,7 +10,9 @@ import (
 )
 
 var ErrorUsernameNotFound = errors.New("User not found")
+
 var ErrorIdIsRequired = errors.New("Identifier is required")
+var ErrorUsernameIsRequired =  errors.New("Username is required")
 
 const BrazilianDateTimeFormat = "02/01/2006 15:04:05"
 
