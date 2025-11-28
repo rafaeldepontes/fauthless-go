@@ -13,6 +13,13 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
+const (
+	_ = iota
+	CookieBased
+	JwtBased
+	JwtRefreshBased
+)
+
 func initLogger() *log.Logger {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)

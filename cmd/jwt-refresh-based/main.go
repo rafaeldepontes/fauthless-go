@@ -20,7 +20,7 @@ func main() {
 	defer db.Close()
 
 	var r *chi.Mux = chi.NewRouter()
-	handler.Handler(r, app)
+	handler.Handler(r, app, api.JwtRefreshBased)
 
 	app.Logger.Infof("API running at %v\n", config.JwtRefreshBasedPort)
 
