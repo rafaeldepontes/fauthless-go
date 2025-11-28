@@ -9,9 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ErrorUsernameNotFound = errors.New("User not found")
+var ErrorUserNotFound = errors.New("User not found")
 var ErrorInvalidMethod = errors.New("Invalid method")
 var ErrorUserAlreadyExists = errors.New("User already exist")
+var ErrorInvalidUsernameOrPassword = errors.New("Invalid username or password")
 
 var ErrorIdIsRequired = errors.New("Identifier is required")
 var ErrorUsernameIsRequired = errors.New("Username is required")
