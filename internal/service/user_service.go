@@ -74,10 +74,10 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	pathId, _ := strconv.Atoi(idStr)
 	id := uint(pathId)
 
-	var user repository.User
+	var user *repository.User
 	user, err := us.userRepository.FindUserById(id)
 	if err != nil {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameNotFound, r.URL.Path)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
 		return
 	}
@@ -97,10 +97,10 @@ func (us UserService) FindUserByUsername(w http.ResponseWriter, r *http.Request)
 		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUsernameIsRequired)
 	}
 
-	var user repository.User
+	var user *repository.User
 	user, err := us.userRepository.FindUserByUsername(username)
 	if err != nil {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameNotFound, r.URL.Path)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
 	}
 

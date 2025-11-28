@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/rafaeldepontes/auth-go/internal/domain"
 	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
 	"github.com/rafaeldepontes/auth-go/internal/repository"
 	log "github.com/sirupsen/logrus"
@@ -67,10 +68,44 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
+
+	as.Logger.Infoln("The user registered successfully.")
 }
 
 func (as AuthService) Login(w http.ResponseWriter, r *http.Request) {
+	as.Logger.Infoln("Trying to login user")
 
+	if r.Method != http.MethodPost {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidMethod)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidMethod, r.URL.Path)
+		return
+	}
+
+	var user domain.UserLogin
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	var userInTheDatabase *repository.User
+	userInTheDatabase, err = as.userRepository.FindUserByUsername(user.Username)
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUserNotFound)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
+		return
+	}
+
+	password := *userInTheDatabase.HashedPassword
+	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidUsernameOrPassword)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidUsernameOrPassword, r.URL.Path)
+		return
+	}
+
+	as.Logger.Infoln("The user logged in successfully.")
 }
 
 func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
@@ -88,7 +123,7 @@ func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
 
 	emptyUser := repository.User{}
 	user, _ := as.userRepository.FindUserByUsername(*newUser.Username)
-	if user != emptyUser {
+	if *user != emptyUser {
 		return false, errorhandler.ErrorUserAlreadyExists
 	}
 
