@@ -35,8 +35,10 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  age INT NOT NULL
-);
+  session_token VARCHAR(255),
+  csrf_token VARCHAR(255),
+  age INT not null
+ );
 ```
 
 ## Environment variables
