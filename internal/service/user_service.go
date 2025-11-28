@@ -88,6 +88,28 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+func (us UserService) FindUserByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	us.Logger.Infof("Listing user by username: %v", username)
+
+	if username == "" {
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameIsRequired, r.URL.Path)
+		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUsernameIsRequired)
+	}
+
+	var user repository.User
+	user, err := us.userRepository.FindUserByUsername(username)
+	if err != nil {
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameNotFound, r.URL.Path)
+		us.Logger.Errorf("An error occurred: %v", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(user)
+}
+
 func (us UserService) UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 
 }
