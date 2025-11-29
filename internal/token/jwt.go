@@ -1,6 +1,7 @@
 package token
 
 import (
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -32,23 +33,37 @@ func (builder JwtBuilder) GenerateToken(id uint, email string, duration time.Dur
 }
 
 func (builder JwtBuilder) VerifyToken(token string) (*UserClaims, error) {
-	var userClaims *UserClaims
+	userClaims := &UserClaims{}
 	var tokenJwt *jwt.Token
 	tokenJwt, err := jwt.ParseWithClaims(token, userClaims, func(t *jwt.Token) (any, error) {
 		_, ok := t.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
-			return nil, errorhandler.ErrorInvalidTokenSigningMethod
+			return nil, errorhandler.ErrInvalidTokenSigningMethod
 		}
 		return []byte(builder.secretKey), nil
 	})
 
 	if err != nil {
-		return nil, errorhandler.ErrorParsingToken
+
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, errorhandler.ErrInvalidExpiredToken
+		}
+		if errors.Is(err, jwt.ErrTokenNotValidYet) {
+			return nil, errorhandler.ErrTokenNotValidYet
+		}
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return nil, errorhandler.ErrMalformedToken
+		}
+		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+			return nil, errorhandler.ErrInvalidTokenSignature
+		}
+
+		return nil, errorhandler.ErrParsingToken
 	}
 
 	userClaims, ok := tokenJwt.Claims.(*UserClaims)
 	if !ok {
-		return nil, errorhandler.ErrorInvalidTokenClaim
+		return nil, errorhandler.ErrInvalidTokenClaim
 	}
 
 	return userClaims, nil
