@@ -19,19 +19,24 @@ const (
 )
 
 type AuthService struct {
+	jwtMaker       *token.JwtBuilder
 	userRepository *repository.UserRepository
 	Logger         *log.Logger
 }
 
 // NewAuthService initialize a new AuthService containing a UserRepository for
 // login and register operations ONLY.
-func NewAuthService(userRepo *repository.UserRepository, logg *log.Logger) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, logg *log.Logger, secretKey string) *AuthService {
 	return &AuthService{
 		userRepository: userRepo,
 		Logger:         logg,
+		jwtMaker:       token.NewJwtBuilder(secretKey),
 	}
 }
 
+// Register is a generic register system that can be use in any case,
+// it doesnt returns nothing and only insert a new user into the database
+// after a bunch of validations.
 func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	as.Logger.Infoln("Registering a new user")
 
@@ -80,45 +85,14 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	as.Logger.Infoln("The user registered successfully.")
 }
 
-func (as AuthService) Login(w http.ResponseWriter, r *http.Request) {
-	as.Logger.Infoln("Trying to login user")
-
-	if r.Method != http.MethodPost {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidMethod)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidMethod, r.URL.Path)
-		return
-	}
-
-	var user domain.UserLogin
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.InternalErrorHandler(w)
-		return
-	}
-
-	var userInTheDatabase *repository.User
-	userInTheDatabase, err = as.userRepository.FindUserByUsername(user.Username)
-	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUserNotFound)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
-		return
-	}
-
-	password := *userInTheDatabase.HashedPassword
-	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
-	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidUsernameOrPassword)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidUsernameOrPassword, r.URL.Path)
-		return
-	}
-
+func (as AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) {
+	var user *repository.User = loginFlow(&as, w, r)
 	token := token.CookieBased{}
 
 	sessionToken := token.GenerateToken(Token_Length)
 	csrfToken := token.GenerateToken(Token_Length)
 
-	err = as.userRepository.SetUserToken(sessionToken, csrfToken, *userInTheDatabase.Id)
+	err := as.userRepository.SetUserToken(sessionToken, csrfToken, *user.Id)
 	if err != nil {
 		as.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
@@ -144,6 +118,33 @@ func (as AuthService) Login(w http.ResponseWriter, r *http.Request) {
 	as.Logger.Infoln("The user logged in successfully.")
 }
 
+func (as AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
+	var user *repository.User = loginFlow(&as, w, r)
+	var maker *token.JwtBuilder = as.jwtMaker
+
+	id, username := user.Id, user.Username
+	as.Logger.Infoln(id, username)
+
+	token, _, err := maker.GenerateToken(*id, *username, 15*time.Minute)
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	userResponse := domain.TokenResponse{
+		Token: token,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(userResponse)
+}
+
+func (as AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
 	if username := newUser.Username; *username == "" {
 		return false, errorhandler.ErrorUsernameIsRequired
@@ -164,4 +165,41 @@ func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *repository.User {
+	as.Logger.Infoln("Trying to login user")
+
+	if r.Method != http.MethodPost {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidMethod)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidMethod, r.URL.Path)
+		return nil
+	}
+
+	var user domain.UserLogin
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return nil
+	}
+
+	var userInTheDatabase *repository.User
+	userInTheDatabase, err = as.userRepository.FindUserByUsername(user.Username)
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUserNotFound)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
+		return nil
+	}
+
+	password := *userInTheDatabase.HashedPassword
+	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
+	if err != nil {
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidUsernameOrPassword)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidUsernameOrPassword, r.URL.Path)
+		return nil
+	}
+
+	as.Logger.Infoln("Valid user, following the next steps...")
+	return userInTheDatabase
 }
