@@ -79,9 +79,9 @@ func (repo *UserRepository) FindUserById(id uint) (*User, error) {
 // returns the user and an error if any.
 func (repo *UserRepository) FindUserByUsername(username string) (*User, error) {
 	var user User
-	query := `SELECT id, password FROM users WHERE username = $1;`
+	query := `SELECT id, password, username FROM users WHERE username = $1;`
 
-	err := repo.db.QueryRow(query, username).Scan(&user.Id, &user.HashedPassword)
+	err := repo.db.QueryRow(query, username).Scan(&user.Id, &user.HashedPassword, &user.Username)
 	if err != nil {
 		return &User{}, err
 	}
