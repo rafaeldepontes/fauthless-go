@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS users (
 
 Create a `.env` file (example provided in the project). The service expects at least:
 
-    ```
       JWT_PORT = "localhost:8001"
       COOKIE_PORT = "localhost:8000"
       JWT_REFRESH_PORT = "localhost:8002"
@@ -59,7 +58,6 @@ Create a `.env` file (example provided in the project). The service expects at l
       ISSUER="golang"
       JWT_SECRET_KEY="secretKeyExample"
       TOKEN_DURATION="15" # In minutes...
-    ```
 
 ## How to use
 
