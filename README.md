@@ -135,20 +135,11 @@ curl -i -X POST http://localhost:8000/register   -H "Content-Type: application/j
 
 Your server can run in one of three modes:
 
----
+- Cookie-based | `COOKIE_PORT=8000`
 
-Mode Login Handler Middleware Port
+- JWT-based | `JWT_PORT=8001`
 
----
-
-Cookie-based LoginCookieBased AuthCookieBased COOKIE_PORT
-
-JWT-based LoginJwtBased JwtBased JWT_PORT
-
-JWT + Refresh LoginJwtRefreshBased JwtRefreshBased JWT_REFRESH_PORT
-(WIP)
-
----
+- JWT + Refresh | `JWT_REFRESH_PORT=8002 (WIP)`
 
 ---
 
