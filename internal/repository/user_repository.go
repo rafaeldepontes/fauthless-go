@@ -38,7 +38,13 @@ func (repo *UserRepository) FindAllUsers(size, page int) ([]User, int, error) {
 	query := `SELECT id, username, age FROM users LIMIT $1 OFFSET $2;`
 	offset := (page - 1) * size
 
-	rows, err := repo.db.Query(query, size, offset)
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(size, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -67,7 +73,13 @@ func (repo *UserRepository) FindUserById(id uint) (*User, error) {
 	var user User
 	query := `SELECT id, username, age FROM users WHERE id = $1;`
 
-	err := repo.db.QueryRow(query, id).Scan(&user.Id, &user.Username, &user.Age)
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return &User{}, err
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRow(id).Scan(&user.Id, &user.Username, &user.Age)
 	if err != nil {
 		return &User{}, err
 	}
@@ -81,7 +93,13 @@ func (repo *UserRepository) FindUserByUsername(username string) (*User, error) {
 	var user User
 	query := `SELECT id, password, username FROM users WHERE username = $1;`
 
-	err := repo.db.QueryRow(query, username).Scan(&user.Id, &user.HashedPassword, &user.Username)
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return &User{}, err
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRow(username).Scan(&user.Id, &user.HashedPassword, &user.Username)
 	if err != nil {
 		return &User{}, err
 	}
@@ -102,6 +120,7 @@ func (repo *UserRepository) RegisterUser(user *User) error {
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	stmt.Exec(user.Username, user.HashedPassword, user.Age)
 
@@ -123,6 +142,7 @@ func (repo *UserRepository) SetUserToken(token, csrfToken string, userId uint) e
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	stmt.Exec(token, csrfToken, userId)
 
