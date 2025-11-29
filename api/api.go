@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rafaeldepontes/auth-go/configs"
 	"github.com/rafaeldepontes/auth-go/internal/database"
+	"github.com/rafaeldepontes/auth-go/internal/middleware"
 	"github.com/rafaeldepontes/auth-go/internal/repository"
 	"github.com/rafaeldepontes/auth-go/internal/service"
 	log "github.com/sirupsen/logrus"
@@ -52,10 +53,12 @@ func Init() (*configs.Configuration, *Application, *sql.DB, error) {
 	var userRepository *repository.UserRepository = repository.NewUserRepository(db)
 	var userService *service.UserService = service.NewUserService(userRepository, logger)
 	var authService *service.AuthService = service.NewAuthService(userRepository, logger, config.SecretKey)
+	var middleware *middleware.Middleware = middleware.NewMiddleware(config.SecretKey)
 
 	application := &Application{
 		UserService: userService,
 		AuthService: authService,
+		Middleware:  middleware,
 		Logger:      logger,
 	}
 
