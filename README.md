@@ -230,7 +230,7 @@ Deletes account (must be account owner)
 
 ---
 
-# 4. Quick Reference
+## 4. Quick Reference
 
 ```bash
 # Register
@@ -245,6 +245,6 @@ TOKEN=$(curl -s -X POST http://localhost:8001/login   -H "Content-Type: applicat
 
 ---
 
-# 5. Notes
+## 5. Notes
 
 - JWT refresh login endpoint still needs implementation
