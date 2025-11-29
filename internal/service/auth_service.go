@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/rafaeldepontes/auth-go/internal/domain"
@@ -41,8 +43,8 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	as.Logger.Infoln("Registering a new user")
 
 	if r.Method != http.MethodPost {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidMethod)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidMethod, r.URL.Path)
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidMethod, r.URL.Path)
 		return
 	}
 
@@ -122,10 +124,9 @@ func (as AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
 	var user *repository.User = loginFlow(&as, w, r)
 	var maker *token.JwtBuilder = as.jwtMaker
 
-	id, username := user.Id, user.Username
-	as.Logger.Infoln(id, username)
-
-	token, _, err := maker.GenerateToken(*id, *username, 15*time.Minute)
+	durationInt, _ := strconv.Atoi(os.Getenv("TOKEN_DURATION"))
+	var duration time.Duration = time.Duration(durationInt)
+	token, _, err := maker.GenerateToken(*user.Id, *user.Username, duration*time.Minute)
 	if err != nil {
 		as.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
@@ -147,21 +148,21 @@ func (as AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Reques
 
 func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
 	if username := newUser.Username; *username == "" {
-		return false, errorhandler.ErrorUsernameIsRequired
+		return false, errorhandler.ErrUsernameIsRequired
 	}
 
 	if password := newUser.HashedPassword; *password == "" {
-		return false, errorhandler.ErrorPasswordIsRequired
+		return false, errorhandler.ErrPasswordIsRequired
 	}
 
 	if age := newUser.Age; *age == 0 {
-		return false, errorhandler.ErrorAgeIsRequired
+		return false, errorhandler.ErrAgeIsRequired
 	}
 
 	emptyUser := repository.User{}
 	user, _ := as.userRepository.FindUserByUsername(*newUser.Username)
 	if *user != emptyUser {
-		return false, errorhandler.ErrorUserAlreadyExists
+		return false, errorhandler.ErrUserAlreadyExists
 	}
 
 	return true, nil
@@ -171,8 +172,8 @@ func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *reposit
 	as.Logger.Infoln("Trying to login user")
 
 	if r.Method != http.MethodPost {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidMethod)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidMethod, r.URL.Path)
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidMethod, r.URL.Path)
 		return nil
 	}
 
@@ -187,16 +188,16 @@ func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *reposit
 	var userInTheDatabase *repository.User
 	userInTheDatabase, err = as.userRepository.FindUserByUsername(user.Username)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUserNotFound)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrUserNotFound)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrUserNotFound, r.URL.Path)
 		return nil
 	}
 
 	password := *userInTheDatabase.HashedPassword
 	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrorInvalidUsernameOrPassword)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorInvalidUsernameOrPassword, r.URL.Path)
+		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidUsernameOrPassword)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidUsernameOrPassword, r.URL.Path)
 		return nil
 	}
 

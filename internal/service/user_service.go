@@ -66,8 +66,8 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	us.Logger.Infof("Listing user by id - %v", idStr)
 
 	if idStr == "" {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorIdIsRequired, r.URL.Path)
-		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrorIdIsRequired)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrIdIsRequired, r.URL.Path)
+		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrIdIsRequired)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (us UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	var user *repository.User
 	user, err := us.userRepository.FindUserById(id)
 	if err != nil {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrUserNotFound, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
 		return
 	}
@@ -93,14 +93,14 @@ func (us UserService) FindUserByUsername(w http.ResponseWriter, r *http.Request)
 	us.Logger.Infof("Listing user by username: %v", username)
 
 	if username == "" {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUsernameIsRequired, r.URL.Path)
-		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrorUsernameIsRequired)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrUsernameIsRequired, r.URL.Path)
+		us.Logger.Errorf("An error occurred: %v", errorhandler.ErrUsernameIsRequired)
 	}
 
 	var user *repository.User
 	user, err := us.userRepository.FindUserByUsername(username)
 	if err != nil {
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrorUserNotFound, r.URL.Path)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrUserNotFound, r.URL.Path)
 		us.Logger.Errorf("An error occurred: %v", err)
 	}
 
