@@ -4,7 +4,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/rafaeldepontes/auth-go/api"
-	"github.com/rafaeldepontes/auth-go/internal/middleware"
 )
 
 // Handler controls the system routes based on *chi.Mux and a configuration struct.
@@ -29,11 +28,11 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 		r.Route("/api/v1", func(r chi.Router) {
 			switch typeOf {
 			case api.CookieBased:
-				r.Use(middleware.AuthCookieBased)
+				r.Use(app.Middleware.AuthCookieBased)
 			case api.JwtBased:
-				r.Use(middleware.JwtBased) // TODO: FINISH THE IMPLEMENTATION...
+				r.Use(app.Middleware.JwtBased) // TODO: FINISH THE IMPLEMENTATION...
 			case api.JwtRefreshBased:
-				r.Use(middleware.JwtRefreshBased) // TODO: FINISH THE IMPLEMENTATION...
+				r.Use(app.Middleware.JwtRefreshBased) // TODO: FINISH THE IMPLEMENTATION...
 			default:
 				app.Logger.Fatalln("No authentication method was chosen.")
 			}
