@@ -7,9 +7,10 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rafaeldepontes/auth-go/configs"
 	"github.com/rafaeldepontes/auth-go/internal/database"
+	"github.com/rafaeldepontes/auth-go/internal/database/repository"
 	"github.com/rafaeldepontes/auth-go/internal/middleware"
-	"github.com/rafaeldepontes/auth-go/internal/repository"
 	"github.com/rafaeldepontes/auth-go/internal/service"
+	"github.com/rafaeldepontes/auth-go/internal/storage"
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
@@ -50,10 +51,12 @@ func Init() (*configs.Configuration, *Application, *sql.DB, error) {
 
 	db, err := database.Open()
 
+	var caches *storage.Caches = storage.NewCacheStorage()
+
 	var userRepository *repository.UserRepository = repository.NewUserRepository(db)
-	var userService *service.UserService = service.NewUserService(userRepository, logger)
-	var authService *service.AuthService = service.NewAuthService(userRepository, logger, config.SecretKey)
-	var middleware *middleware.Middleware = middleware.NewMiddleware(config.SecretKey)
+	var userService *service.UserService = service.NewUserService(userRepository, logger, caches)
+	var authService *service.AuthService = service.NewAuthService(userRepository, logger, config.SecretKey, caches)
+	var middleware *middleware.Middleware = middleware.NewMiddleware(config.SecretKey, caches)
 
 	application := &Application{
 		UserService: userService,
