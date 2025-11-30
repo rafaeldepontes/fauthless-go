@@ -43,22 +43,8 @@ func (builder JwtBuilder) VerifyToken(token string) (*UserClaims, error) {
 		return []byte(builder.secretKey), nil
 	})
 
-	if err != nil {
-
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errorhandler.ErrInvalidExpiredToken
-		}
-		if errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return nil, errorhandler.ErrTokenNotValidYet
-		}
-		if errors.Is(err, jwt.ErrTokenMalformed) {
-			return nil, errorhandler.ErrMalformedToken
-		}
-		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
-			return nil, errorhandler.ErrInvalidTokenSignature
-		}
-
-		return nil, errorhandler.ErrParsingToken
+	if err = checkForError(err); err != nil {
+		return nil, err
 	}
 
 	userClaims, ok := tokenJwt.Claims.(*UserClaims)
@@ -67,4 +53,23 @@ func (builder JwtBuilder) VerifyToken(token string) (*UserClaims, error) {
 	}
 
 	return userClaims, nil
+}
+
+func checkForError(err error) error {
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return errorhandler.ErrInvalidExpiredToken
+		}
+		if errors.Is(err, jwt.ErrTokenNotValidYet) {
+			return errorhandler.ErrTokenNotValidYet
+		}
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return errorhandler.ErrMalformedToken
+		}
+		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+			return errorhandler.ErrInvalidTokenSignature
+		}
+		return errorhandler.ErrParsingToken
+	}
+	return nil
 }
