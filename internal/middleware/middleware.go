@@ -5,11 +5,14 @@ import (
 	"strings"
 
 	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
+	"github.com/rafaeldepontes/auth-go/internal/storage"
 	jwt "github.com/rafaeldepontes/auth-go/internal/token"
 )
 
 type Middleware struct {
 	JwtBuilder *jwt.JwtBuilder
+	UserCache  *storage.Cache[string, string]
+	Cache      *storage.Caches
 }
 
 type contextKey string
@@ -18,9 +21,10 @@ const TokenContextKey = contextKey("token")
 
 var Token_Prefix = "Bearer "
 
-func NewMiddleware(sk string) *Middleware {
+func NewMiddleware(sk string, cache *storage.Caches) *Middleware {
 	return &Middleware{
 		JwtBuilder: jwt.NewJwtBuilder(sk),
+		Cache:      cache,
 	}
 }
 
@@ -29,8 +33,12 @@ func (m *Middleware) AuthCookieBased(next http.Handler) http.Handler {
 		var sessioToken *http.Cookie
 		sessioToken, err := r.Cookie("session_token")
 
-		// I should check if the token is the same for the user...
-		// but I don't want to.
+		userCache := m.Cache.UserCache
+		if _, ok := userCache.Get("session_token"); !ok {
+			errorhandler.UnauthroizedErrorHandler(w, errorhandler.ErrInvalidToken)
+			return
+		}
+
 		if err != nil || sessioToken.Value == "" {
 			errorhandler.UnauthroizedErrorHandler(w, errorhandler.ErrInvalidToken)
 			return
@@ -51,14 +59,18 @@ func (m *Middleware) JwtBased(next http.Handler) http.Handler {
 		dirtToken := r.Header.Get("Authorization")
 		token := cleanToken(dirtToken)
 
-		if dirtToken == "" || dirtToken == token {
+		if dirtToken == "" || !strings.HasPrefix(dirtToken, Token_Prefix) {
 			errorhandler.UnauthroizedErrorHandler(w, errorhandler.ErrInvalidToken)
 			return
 		}
 
-		_, err := m.JwtBuilder.VerifyToken(token)
+		userClaims, err := m.JwtBuilder.VerifyToken(token)
 		if err != nil {
 			errorhandler.UnauthroizedErrorHandler(w, err)
+			return
+		}
+
+		if !validCredentials(w, r, m, &token, userClaims) {
 			return
 		}
 
@@ -75,4 +87,51 @@ func (m *Middleware) JwtRefreshBased(next http.Handler) http.Handler {
 
 func cleanToken(dirtToken string) string {
 	return strings.TrimPrefix(dirtToken, Token_Prefix)
+}
+
+func validCredentials(w http.ResponseWriter, r *http.Request, m *Middleware, token *string, userClaims *jwt.UserClaims) bool {
+	path := r.URL.Path
+
+	if !strings.Contains(path, "users") {
+		return true
+	}
+
+	tokenCache := m.Cache.TokenCache
+
+	if val, ok := tokenCache.Get(*token); !ok || val {
+		errorhandler.UnauthroizedErrorHandler(w, errorhandler.ErrInvalidToken)
+		return false
+	}
+
+	if !checkMethods(r) {
+		return true
+	}
+
+	if r.Method == http.MethodDelete {
+		tokenCache := m.Cache.TokenCache
+		tokenCache.Set(*token, true, userClaims.ExpiresAt.Time)
+	}
+
+	pathSlice := strings.Split(path, "/")
+	if len(pathSlice) <= 0 {
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrIdIsRequired, r.URL.Path)
+		return false
+	}
+
+	// for some reason when I try to get the path id by the normal way
+	// using r.PathValue("username"), it's not giving me anything even though
+	// I have the id in the request and have confirmed it... so this
+	// was the only way to work around...
+	username := pathSlice[len(pathSlice)-1]
+
+	if userClaims.Username == username {
+		return true
+	}
+
+	errorhandler.ForbiddenErrorHandler(w, errorhandler.ErrInvalidId)
+	return false
+}
+
+func checkMethods(r *http.Request) bool {
+	return r.Method == http.MethodPatch || r.Method == http.MethodDelete
 }
