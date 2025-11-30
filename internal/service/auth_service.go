@@ -22,32 +22,34 @@ const (
 )
 
 type AuthService struct {
-	jwtMaker       *token.JwtBuilder
-	userRepository *repository.UserRepository
-	Logger         *log.Logger
-	Caches         *storage.Caches
-	Cache          *storage.Caches
+	jwtMaker          *token.JwtBuilder
+	userRepository    *repository.UserRepository
+	sessionRepository *repository.SessionRepository
+	Logger            *log.Logger
+	Caches            *storage.Caches
+	Cache             *storage.Caches
 }
 
 // NewAuthService initialize a new AuthService containing a UserRepository for
 // login and register operations ONLY.
-func NewAuthService(userRepo *repository.UserRepository, logg *log.Logger, secretKey string, cache *storage.Caches) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, sessionRepo *repository.SessionRepository, logg *log.Logger, secretKey string, cache *storage.Caches) *AuthService {
 	return &AuthService{
-		userRepository: userRepo,
-		Logger:         logg,
-		jwtMaker:       token.NewJwtBuilder(secretKey),
-		Cache:          cache,
+		userRepository:    userRepo,
+		sessionRepository: sessionRepo,
+		Logger:            logg,
+		jwtMaker:          token.NewJwtBuilder(secretKey),
+		Cache:             cache,
 	}
 }
 
 // Register is a generic register system that can be use in any case,
 // it doesnt returns nothing and only insert a new user into the database
 // after a bunch of validations.
-func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
-	as.Logger.Infoln("Registering a new user")
+func (s *AuthService) Register(w http.ResponseWriter, r *http.Request) {
+	s.Logger.Infoln("Registering a new user")
 
 	if r.Method != http.MethodPost {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidMethod, r.URL.Path)
 		return
 	}
@@ -55,13 +57,13 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	var user repository.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
 
-	if ok, err := isValidUser(&user, as); !ok {
-		as.Logger.Errorf("An error occurred: %v", err)
+	if ok, err := isValidUser(&user, s); !ok {
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
 		return
 	}
@@ -71,16 +73,16 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	var hashedPassword []byte
 	hashedPassword, err = bcrypt.GenerateFromPassword([]byte(*password), Cost)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
 
 	*password = string(hashedPassword)
 
-	err = as.userRepository.RegisterUser(&user)
+	err = s.userRepository.RegisterUser(&user)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
@@ -88,11 +90,11 @@ func (as *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	as.Logger.Infoln("The user registered successfully.")
+	s.Logger.Infoln("The user registered successfully.")
 }
 
-func (as *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) {
-	var user *repository.User = loginFlow(as, w, r)
+func (s *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) {
+	var user *repository.User = loginFlow(s, w, r)
 	if user == nil {
 		return
 	}
@@ -102,9 +104,9 @@ func (as *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) 
 	sessionToken := token.GenerateToken(Token_Length)
 	csrfToken := token.GenerateToken(Token_Length)
 
-	err := as.userRepository.SetUserToken(sessionToken, csrfToken, *user.Id)
+	err := s.userRepository.SetUserToken(sessionToken, csrfToken, *user.Id)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
@@ -125,33 +127,33 @@ func (as *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) 
 	durationInt, _ := strconv.Atoi(os.Getenv("TOKEN_DURATION"))
 	var duration time.Duration = time.Duration(durationInt)
 
-	userCache := as.Cache.UserCache
+	userCache := s.Cache.UserCache
 	userCache.Set(sessionToken, *user.Username, time.Now().Add(duration*time.Minute))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	as.Logger.Infoln("The user logged in successfully.")
+	s.Logger.Infoln("The user logged in successfully.")
 }
 
-func (as *AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
-	var user *repository.User = loginFlow(as, w, r)
+func (s *AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
+	var user *repository.User = loginFlow(s, w, r)
 	if user == nil {
 		return
 	}
 
-	var maker *token.JwtBuilder = as.jwtMaker
+	var maker *token.JwtBuilder = s.jwtMaker
 
 	durationInt, _ := strconv.Atoi(os.Getenv("TOKEN_DURATION"))
 	var duration time.Duration = time.Duration(durationInt)
 	token, _, err := maker.GenerateToken(*user.Id, *user.Username, duration*time.Minute)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return
 	}
 
-	tokenCache := as.Cache.TokenCache
+	tokenCache := s.Cache.TokenCache
 	invalid := false
 	tokenCache.Set(token, invalid, time.Now().Add(duration*time.Minute))
 
@@ -164,11 +166,54 @@ func (as *AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userResponse)
 }
 
-func (as *AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Request) {
+func (s *AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Request) {
+	var user *repository.User = loginFlow(s, w, r)
+	if user == nil {
+		return
+	}
 
+	var maker *token.JwtBuilder = s.jwtMaker
+	accessToken, accessClaims, err := generateAccessToken(maker, *user.Id, *user.Username, time.Minute)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	refreshToken, refreshClaims, err := generateTokenRefresh(maker, *user.Id, *user.Username, time.Hour)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	sessionId, err := s.sessionRepository.CreateSession(&repository.Session{
+		Id:           refreshClaims.RegisteredClaims.ID,
+		Username:     *user.Username,
+		RefreshToken: refreshToken,
+		IsRevoked:    false,
+		ExpiresAt:    refreshClaims.ExpiresAt.Time,
+	})
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	trResponse := domain.TokenRefreshResponse{
+		SessionId:             sessionId,
+		AccessToken:           accessToken,
+		RefreshToken:          refreshToken,
+		AccessTokenExpiresAt:  accessClaims.ExpiresAt.Time,
+		RefreshTokenExpiresAt: refreshClaims.ExpiresAt.Time,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(trResponse)
 }
 
-func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
+func isValidUser(newUser *repository.User, s *AuthService) (bool, error) {
 	if username := newUser.Username; *username == "" {
 		return false, errorhandler.ErrUsernameIsRequired
 	}
@@ -181,20 +226,20 @@ func isValidUser(newUser *repository.User, as *AuthService) (bool, error) {
 		return false, errorhandler.ErrAgeIsRequired
 	}
 
-	user, err := as.userRepository.FindUserByUsername(*newUser.Username)
+	user, err := s.userRepository.FindUserByUsername(*newUser.Username)
 	if user != nil {
-		as.Logger.Errorf("An error occurred: %v\n", err)
+		s.Logger.Errorf("An error occurred: %v\n", err)
 		return false, errorhandler.ErrUserAlreadyExists
 	}
 
 	return true, nil
 }
 
-func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *repository.User {
-	as.Logger.Infoln("Trying to login user")
+func loginFlow(s *AuthService, w http.ResponseWriter, r *http.Request) *repository.User {
+	s.Logger.Infoln("Trying to login user")
 
 	if r.Method != http.MethodPost {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidMethod)
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidMethod, r.URL.Path)
 		return nil
 	}
@@ -202,15 +247,15 @@ func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *reposit
 	var user domain.UserLogin
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", err)
+		s.Logger.Errorf("An error occurred: %v", err)
 		errorhandler.InternalErrorHandler(w)
 		return nil
 	}
 
 	var userInTheDatabase *repository.User
-	userInTheDatabase, err = as.userRepository.FindUserByUsername(user.Username)
+	userInTheDatabase, err = s.userRepository.FindUserByUsername(user.Username)
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrUserNotFound)
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrUserNotFound)
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrUserNotFound, r.URL.Path)
 		return nil
 	}
@@ -218,11 +263,102 @@ func loginFlow(as *AuthService, w http.ResponseWriter, r *http.Request) *reposit
 	password := *userInTheDatabase.HashedPassword
 	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
 	if err != nil {
-		as.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidUsernameOrPassword)
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrInvalidUsernameOrPassword)
 		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidUsernameOrPassword, r.URL.Path)
 		return nil
 	}
 
-	as.Logger.Infoln("Valid user, following the next steps...")
+	s.Logger.Infoln("Valid user, following the next steps...")
 	return userInTheDatabase
+}
+
+func (s *AuthService) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
+	var maker *token.JwtBuilder = s.jwtMaker
+
+	var req domain.RenewAccessTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	refreshClaims, err := s.jwtMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
+		return
+	}
+
+	var session *repository.Session
+	session, err = s.sessionRepository.FindSessionById(refreshClaims.ID)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidToken, r.URL.Path)
+		return
+	}
+
+	if session.IsRevoked {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrTokenRevoked, r.URL.Path)
+		return
+	}
+
+	if session.Username != refreshClaims.Username {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
+		errorhandler.ForbiddenErrorHandler(w, errorhandler.ErrTokenRevoked)
+		return
+	}
+
+	accessToken, accessClaims, err := generateAccessToken(maker, refreshClaims.Id, refreshClaims.Username, time.Minute)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	tkResponse := &domain.RenewAccessTokenResponse{
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessClaims.ExpiresAt.Time,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(tkResponse)
+}
+
+func (s *AuthService) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrIdIsRequired)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrIdIsRequired, r.URL.Path)
+		return
+	}
+
+	err := s.sessionRepository.RevokeSession(id)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidSession, r.URL.Path)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func generateTokenRefresh(maker *token.JwtBuilder, id uint, username string, timer time.Duration) (string, *token.UserClaims, error) {
+	return generateToken(maker, id, username, 24, timer)
+}
+
+func generateAccessToken(maker *token.JwtBuilder, id uint, username string, timer time.Duration) (string, *token.UserClaims, error) {
+	durationInt, _ := strconv.Atoi(os.Getenv("TOKEN_DURATION"))
+	var duration time.Duration = time.Duration(durationInt)
+	return generateToken(maker, id, username, duration, timer)
+}
+
+func generateToken(maker *token.JwtBuilder, id uint, username string, timer time.Duration, duration time.Duration) (string, *token.UserClaims, error) {
+	token, userClaims, err := maker.GenerateToken(id, username, duration*timer)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, userClaims, nil
 }
