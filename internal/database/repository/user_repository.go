@@ -75,13 +75,13 @@ func (repo *UserRepository) FindUserById(id uint) (*User, error) {
 
 	stmt, err := repo.db.Prepare(query)
 	if err != nil {
-		return &User{}, err
+		return nil, err
 	}
 	defer stmt.Close()
 
 	err = stmt.QueryRow(id).Scan(&user.Id, &user.Username, &user.Age)
 	if err != nil {
-		return &User{}, err
+		return nil, err
 	}
 
 	return &user, nil
@@ -91,17 +91,17 @@ func (repo *UserRepository) FindUserById(id uint) (*User, error) {
 // returns the user and an error if any.
 func (repo *UserRepository) FindUserByUsername(username string) (*User, error) {
 	var user User
-	query := `SELECT id, password, username FROM users WHERE username = $1;`
+	query := `SELECT id, password, username, age FROM users WHERE username = $1;`
 
 	stmt, err := repo.db.Prepare(query)
 	if err != nil {
-		return &User{}, err
+		return nil, err
 	}
 	defer stmt.Close()
 
-	err = stmt.QueryRow(username).Scan(&user.Id, &user.HashedPassword, &user.Username)
+	err = stmt.QueryRow(username).Scan(&user.Id, &user.HashedPassword, &user.Username, &user.Age)
 	if err != nil {
-		return &User{}, err
+		return nil, err
 	}
 
 	return &user, nil
@@ -145,6 +145,52 @@ func (repo *UserRepository) SetUserToken(token, csrfToken string, userId uint) e
 	defer stmt.Close()
 
 	stmt.Exec(token, csrfToken, userId)
+
+	return nil
+}
+
+// UpdateUserDetails updates the user details in the ddatabase
+// with the new username and/or age, returns an erro if any.
+func (repo *UserRepository) UpdateUserDetails(user *User) error {
+	query := `
+	UPDATE users
+	SET age = $1
+	WHERE id = $2
+	`
+
+	var stmt *sql.Stmt
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.Age, user.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteAccount deletes the user account from the database
+// based on the username, returns an error if any.
+func (repo *UserRepository) DeleteAccount(username string) error {
+	query := `
+	DELETE FROM users where username = $1
+	`
+
+	var stmt *sql.Stmt
+	stmt, err := repo.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(username)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
