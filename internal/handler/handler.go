@@ -30,7 +30,7 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 			case api.CookieBased:
 				r.Use(app.Middleware.AuthCookieBased)
 			case api.JwtBased:
-				r.Use(app.Middleware.JwtBased) // TODO: FINISH THE IMPLEMENTATION...
+				r.Use(app.Middleware.JwtBased)
 			case api.JwtRefreshBased:
 				r.Use(app.Middleware.JwtRefreshBased) // TODO: FINISH THE IMPLEMENTATION...
 			default:
@@ -39,8 +39,14 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 
 			r.Get("/users", app.UserService.FindAllUsers)
 			r.Get("/users/{id}", app.UserService.FindUserById)
-			r.Patch("/users", app.UserService.UpdateUserDetails)
-			r.Delete("/users", app.UserService.DeleteAccount)
+
+			switch typeOf {
+			case api.CookieBased:
+				app.Logger.Infoln("Cookie based authorization doens't allow this endpoints...")
+			default:
+				r.Patch("/users/{username}", app.UserService.UpdateUserDetails)
+				r.Delete("/users/{username}", app.UserService.DeleteAccount)
+			}
 		})
 	})
 }
