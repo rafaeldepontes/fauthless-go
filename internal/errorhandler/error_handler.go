@@ -24,10 +24,13 @@ var (
 	ErrAgeIsRequired             = errors.New("Age is required")
 	ErrInvalidMethod             = errors.New("Invalid method")
 	ErrCreatingToken             = errors.New("Error while creating token")
+	ErrEqualUsername             = errors.New("The new username should be different from the actual")
 	ErrIdIsRequired              = errors.New("Identifier is required")
 	ErrUserNotFound              = errors.New("User not found")
 	ErrParsingToken              = errors.New("Error parsing token")
 	ErrInvalidToken              = errors.New("Token missing or invalid")
+	ErrInvalidId                 = errors.New("Invalid username, needs to be your own")
+	ErrEqualAge                  = errors.New("The new age should be different from the actual")
 )
 
 const BrazilianDateTimeFormat = "02/01/2006 15:04:05"
@@ -48,6 +51,9 @@ var (
 	}
 	UnauthroizedErrorHandler = func(w http.ResponseWriter, err error) {
 		writeError(w, err.Error(), http.StatusUnauthorized, "")
+	}
+	ForbiddenErrorHandler = func(w http.ResponseWriter, err error) {
+		writeError(w, err.Error(), http.StatusForbidden, "")
 	}
 	RequestErrorHandler = func(w http.ResponseWriter, err error, status int, path string) {
 		writeError(w, err.Error(), status, path)
