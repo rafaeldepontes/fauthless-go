@@ -5,10 +5,6 @@ type UserLogin struct {
 	Password string
 }
 
-type TokenResponse struct {
-	Token string `json:"token"`
-}
-
 type UserDetails struct {
 	Age uint
 }
