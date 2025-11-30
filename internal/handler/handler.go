@@ -18,6 +18,8 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 		r.Post("/login", app.AuthService.LoginJwtBased)
 	case api.JwtRefreshBased:
 		r.Post("/login", app.AuthService.LoginJwtRefreshBased)
+		r.Post("/renew", app.AuthService.RenewAccessToken)
+		r.Post("/revoke", app.AuthService.RevokeSession)
 	default:
 		app.Logger.Fatalln("No authentication method was chosen.")
 	}
