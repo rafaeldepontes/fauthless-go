@@ -38,7 +38,16 @@ CREATE TABLE IF NOT EXISTS users (
   session_token VARCHAR(255),
   csrf_token VARCHAR(255),
   age INT not null
- );
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id VARCHAR(255) PRIMARY KEY NOT NULL,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  is_revoked BOOL NOT null default false,
+  refresh_token VARCHAR(512) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP
+);
 ```
 
 ## Environment variables
@@ -102,7 +111,7 @@ Base path: `/api/v1`
 
 - **GET** | `/users/{id}`
 - **GET** | `/users?page=$&size=$`
-- **PATCH** | `/users`
+- **PATCH** | `/users/{username}`
 - **DELETE** | `/users/{username}`
 
 ---
@@ -218,11 +227,11 @@ Supports: - `?page=1` - `?size=25`
 
 ### **GET /api/v1/users/{id}**
 
-### **PATCH /api/v1/users**
+### **PATCH /api/v1/users/{username}**
 
 Updates user info (must be account owner)
 
-### **DELETE /api/v1/users**
+### **DELETE /api/v1/users/{username}**
 
 Deletes account (must be account owner)
 
