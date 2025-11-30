@@ -28,24 +28,26 @@ func NewSessionRepository(conn *sql.DB) *SessionRepository {
 
 // CreateSession creates a new session, it expects a session object
 // and returns an error if any
-func (r *SessionRepository) CreateSession(session *Session) error {
+func (r *SessionRepository) CreateSession(session *Session) (string, error) {
 	query := `
-	INSERT INTO sessions (id, username, refresh_token, expires_at)
+	INSERT INTO sessions (id, username, is_revoked, refresh_token, expires_at)
 	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id
 	`
 	var stmt *sql.Stmt
 	stmt, err := r.db.Prepare(query)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(session.Id, session.Username, session.RefreshToken, session.ExpiresAt)
+	var id string
+	err = stmt.QueryRow(session.Id, session.Username, session.IsRevoked, session.RefreshToken, session.ExpiresAt).Scan(&id)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return id, nil
 }
 
 // FindSessionById searchs for a session based on its identifier, it
