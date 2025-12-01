@@ -26,7 +26,6 @@ type AuthService struct {
 	userRepository    *repository.UserRepository
 	sessionRepository *repository.SessionRepository
 	Logger            *log.Logger
-	Caches            *storage.Caches
 	Cache             *storage.Caches
 }
 
@@ -93,6 +92,8 @@ func (s *AuthService) Register(w http.ResponseWriter, r *http.Request) {
 	s.Logger.Infoln("The user registered successfully.")
 }
 
+// LoginCookieBased uses the cookie authorization flow, creating a token that needs to be
+// in the request cookie.
 func (s *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) {
 	var user *repository.User = loginFlow(s, w, r)
 	if user == nil {
@@ -136,6 +137,8 @@ func (s *AuthService) LoginCookieBased(w http.ResponseWriter, r *http.Request) {
 	s.Logger.Infoln("The user logged in successfully.")
 }
 
+// LoginJwtBased uses the Jwt method to create a access token, with it
+// all the features are available until it expires.
 func (s *AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
 	var user *repository.User = loginFlow(s, w, r)
 	if user == nil {
@@ -166,6 +169,10 @@ func (s *AuthService) LoginJwtBased(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userResponse)
 }
 
+// LoginJwtRefreshBased uses the Jwt method to create a access token, with it
+// all the features are available until it expires, but it cames with a refresh
+// token that can be used in another call to gain access again until the refresh
+// one expires...
 func (s *AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Request) {
 	var user *repository.User = loginFlow(s, w, r)
 	if user == nil {
@@ -211,6 +218,82 @@ func (s *AuthService) LoginJwtRefreshBased(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(trResponse)
+}
+
+// RenewAccessToken accepts a json body for the request, in it should have the
+// refresh token available at the login call. After called and with a proper token
+// it gives another access token for futher uses.
+func (s *AuthService) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
+	var maker *token.JwtBuilder = s.jwtMaker
+
+	var req domain.RenewAccessTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	refreshClaims, err := s.jwtMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
+		return
+	}
+
+	var session *repository.Session
+	session, err = s.sessionRepository.FindSessionById(refreshClaims.ID)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidToken, r.URL.Path)
+		return
+	}
+
+	if session.IsRevoked {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrTokenRevoked, r.URL.Path)
+		return
+	}
+
+	if session.Username != refreshClaims.Username {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
+		errorhandler.ForbiddenErrorHandler(w, errorhandler.ErrTokenRevoked)
+		return
+	}
+
+	accessToken, accessClaims, err := generateAccessToken(maker, refreshClaims.Id, refreshClaims.Username, time.Minute)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	tkResponse := &domain.RenewAccessTokenResponse{
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessClaims.ExpiresAt.Time,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(tkResponse)
+}
+
+// RevokeSession disable a refresh token, preventing futher requests.
+func (s *AuthService) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrIdIsRequired)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrIdIsRequired, r.URL.Path)
+		return
+	}
+
+	err := s.sessionRepository.RevokeSession(id)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidSession, r.URL.Path)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func isValidUser(newUser *repository.User, s *AuthService) (bool, error) {
@@ -270,78 +353,6 @@ func loginFlow(s *AuthService, w http.ResponseWriter, r *http.Request) *reposito
 
 	s.Logger.Infoln("Valid user, following the next steps...")
 	return userInTheDatabase
-}
-
-func (s *AuthService) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
-	var maker *token.JwtBuilder = s.jwtMaker
-
-	var req domain.RenewAccessTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.InternalErrorHandler(w)
-		return
-	}
-
-	refreshClaims, err := s.jwtMaker.VerifyToken(req.RefreshToken)
-	if err != nil {
-		s.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
-		return
-	}
-
-	var session *repository.Session
-	session, err = s.sessionRepository.FindSessionById(refreshClaims.ID)
-	if err != nil {
-		s.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidToken, r.URL.Path)
-		return
-	}
-
-	if session.IsRevoked {
-		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrTokenRevoked, r.URL.Path)
-		return
-	}
-
-	if session.Username != refreshClaims.Username {
-		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrTokenRevoked)
-		errorhandler.ForbiddenErrorHandler(w, errorhandler.ErrTokenRevoked)
-		return
-	}
-
-	accessToken, accessClaims, err := generateAccessToken(maker, refreshClaims.Id, refreshClaims.Username, time.Minute)
-	if err != nil {
-		s.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.InternalErrorHandler(w)
-		return
-	}
-
-	tkResponse := &domain.RenewAccessTokenResponse{
-		AccessToken:          accessToken,
-		AccessTokenExpiresAt: accessClaims.ExpiresAt.Time,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(tkResponse)
-}
-
-func (s *AuthService) RevokeSession(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-	if id == "" {
-		s.Logger.Errorf("An error occurred: %v", errorhandler.ErrIdIsRequired)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrIdIsRequired, r.URL.Path)
-		return
-	}
-
-	err := s.sessionRepository.RevokeSession(id)
-	if err != nil {
-		s.Logger.Errorf("An error occurred: %v", err)
-		errorhandler.BadRequestErrorHandler(w, errorhandler.ErrInvalidSession, r.URL.Path)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func generateTokenRefresh(maker *token.JwtBuilder, id uint, username string, timer time.Duration) (string, *token.UserClaims, error) {
