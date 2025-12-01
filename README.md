@@ -305,4 +305,5 @@ TOKEN=$(curl -s -X POST http://localhost:8001/login   -H "Content-Type: applicat
 
 ## 5. Notes
 
+- The project still needs tests case and some coverage about the edge cases...
 - If you need any help or are having any issue with it, contact `rafael.cr.carneiro@gmail.com` for assistance.
