@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   session_token VARCHAR(255),
   csrf_token VARCHAR(255),
   age INT not null
-);
+ );
 
 CREATE TABLE IF NOT EXISTS sessions (
   id VARCHAR(255) PRIMARY KEY NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   refresh_token VARCHAR(512) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   expires_at TIMESTAMP
-);
+ );
 ```
 
 ## Environment variables
