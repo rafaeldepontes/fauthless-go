@@ -6,5 +6,5 @@ type UserLogin struct {
 }
 
 type UserDetails struct {
-	Age uint
+	Age int
 }

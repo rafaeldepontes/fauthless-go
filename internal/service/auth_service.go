@@ -393,17 +393,17 @@ func loginFlow(s *AuthService, w http.ResponseWriter, r *http.Request) *reposito
 	return userInTheDatabase
 }
 
-func generateTokenRefresh(maker *token.JwtBuilder, id uint, username string, timer time.Duration) (string, *token.UserClaims, error) {
+func generateTokenRefresh(maker *token.JwtBuilder, id int64, username string, timer time.Duration) (string, *token.UserClaims, error) {
 	return generateToken(maker, id, username, 24, timer)
 }
 
-func generateAccessToken(maker *token.JwtBuilder, id uint, username string, timer time.Duration) (string, *token.UserClaims, error) {
+func generateAccessToken(maker *token.JwtBuilder, id int64, username string, timer time.Duration) (string, *token.UserClaims, error) {
 	durationInt, _ := strconv.Atoi(os.Getenv("TOKEN_DURATION"))
 	var duration time.Duration = time.Duration(durationInt)
 	return generateToken(maker, id, username, duration, timer)
 }
 
-func generateToken(maker *token.JwtBuilder, id uint, username string, timer time.Duration, duration time.Duration) (string, *token.UserClaims, error) {
+func generateToken(maker *token.JwtBuilder, id int64, username string, timer time.Duration, duration time.Duration) (string, *token.UserClaims, error) {
 	token, userClaims, err := maker.GenerateToken(id, username, duration*timer)
 	if err != nil {
 		return "", nil, err

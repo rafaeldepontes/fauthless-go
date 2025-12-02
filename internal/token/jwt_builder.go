@@ -16,7 +16,7 @@ func NewJwtBuilder(secretKey string) *JwtBuilder {
 	return &JwtBuilder{secretKey}
 }
 
-func (builder JwtBuilder) GenerateToken(id uint, username string, duration time.Duration) (string, *UserClaims, error) {
+func (builder JwtBuilder) GenerateToken(id int64, username string, duration time.Duration) (string, *UserClaims, error) {
 	var userClaims *UserClaims
 	userClaims, err := NewUserClaims(id, username, duration)
 	if err != nil {
