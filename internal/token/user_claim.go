@@ -11,10 +11,10 @@ import (
 type UserClaims struct {
 	jwt.RegisteredClaims
 	Username string `json:"username"`
-	Id       uint   `json:"id"`
+	Id       int64  `json:"id"`
 }
 
-func NewUserClaims(id uint, username string, duration time.Duration) (*UserClaims, error) {
+func NewUserClaims(id int64, username string, duration time.Duration) (*UserClaims, error) {
 	tokenId, err := uuid.NewRandom()
 	if err != nil {
 		return &UserClaims{}, err
