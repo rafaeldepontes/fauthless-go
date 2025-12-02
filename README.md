@@ -59,19 +59,28 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 Create a `.env` file (example provided in the project). The service expects at least:
 
-      JWT_PORT = "localhost:8001"
-      COOKIE_PORT = "localhost:8000"
-      JWT_REFRESH_PORT = "localhost:8002"
+```bash
+JWT_PORT = "localhost:8001"
+COOKIE_PORT = "localhost:8000"
+JWT_REFRESH_PORT = "localhost:8002"
 
-      #-------------------------------------
+#-------------------------------------
 
-      DATABASE_URL="postgres://root:example@localhost:5432/postgres"
+DATABASE_URL="postgres://root:example@localhost:5432/postgres"
 
-      #-------------------------------------
+#-------------------------------------
 
-      ISSUER="golang"
-      JWT_SECRET_KEY="secretKeyExample"
-      TOKEN_DURATION="15" # In minutes...
+ISSUER="golang"
+JWT_SECRET_KEY="secretKeyExample"
+TOKEN_DURATION="15" # In minutes...
+
+#-------------------------------------
+
+GOOGLE_KEY="<your-secret-key-from-google-oauth2>"
+GOOGLE_CLIENT_ID="<your-client-id-from-google-oauth2>"
+GOOGLE_CLIENT_SECRET="random secret... omg!!"
+URL_CALLBACK="http://localhost:8000/auth/google/callback" # change this if you're running the application in another port...
+```
 
 ## How to use
 
@@ -101,6 +110,7 @@ Create a `.env` file (example provided in the project). The service expects at l
    go run cmd/cookie-based/main.go         # This one for the Cookie token with csrf protection.
    go run cmd/jwt-based/main.go            # This one for the JWT but without the refresh token, only the expiration time
    go run cmd/jwt-refresh-based/main.go    # This one for the JWT with refresh token.
+   go run cmd/oauth/main.go                # This one for the Login using Google, don't worry... the application stores no data... feel free to check
    ```
 
 # Endpoints Overview
@@ -274,7 +284,40 @@ curl -X POST http://localhost:8002/revoke/8a4f2d9e-1a3b-4c2a-9b8f-0a1b2c3d4e5f
 
 ---
 
-## 3. Protected Endpoints
+## 2.4 OAuth2 Using Google
+
+### Overview
+
+OAuth2 support is implemented using the `goth` and `gothic` packages. The oauth server flow in this project exposes a simple UI and three main endpoints used by the Google provider: start auth, callback and logout.
+
+### Main endpoints for OAuth2
+
+- **GET /auth/{provider}** — Redirects to the provider's auth page (e.g. `/auth/google`).
+- **GET /auth/{provider}/callback** — Provider redirects back to this URL after the user grants permission.
+- **GET /logout/{provider}** — Logs the user out from the local session and redirects to `/`.
+
+---
+
+Example handler behavior (simplified)
+
+- `GetAuthOAuth2` will call `gothic.BeginAuthHandler(w, r)` to start the provider flow. If an existing goth session is present, it will display the user.
+- `GetAuthCallbackOAuth2` will call `gothic.CompleteUserAuth(w, r)` to complete the flow and receive provider user data.
+- `LogoutOAuth2` calls `gothic.Logout(w, r)` and redirects to `/`.
+
+---
+
+### Setting up Google OAuth credentials
+
+1. Go to Google Cloud Console > APIs & Services > Credentials.
+2. Create an OAuth 2.0 Client ID. Set the Authorized redirect URI to the `URL_CALLBACK` value from your `.env.example` (e.g. `http://localhost:8000/auth/google/callback`).
+3. Fill `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in your `.env.example` file.
+4. Run `go run cmd/oauth/main.go` and open `http://localhost:8000/` in your browser to start the flow.
+
+> Note: The project does not persist provider user information by default — it only demonstrates the OAuth flow and prints/stores session info. Adjust as needed to map provider users to your local user table.
+
+---
+
+## 3. Protected Endpoints (detail)
 
 ### **GET /api/v1/users**
 
@@ -283,13 +326,19 @@ Supports: - `?page=1` - `?size=25`
 
 ### **GET /api/v1/users/{id}**
 
+Returns a single user object by numeric `id`.
+
 ### **PATCH /api/v1/users/{username}**
 
-Updates user info (must be account owner)
+Updates user info (must be account owner). Example body:
+
+```json
+{ "age": 31 }
+```
 
 ### **DELETE /api/v1/users/{username}**
 
-Deletes account (must be account owner)
+Deletes account (must be account owner).
 
 ---
 
@@ -308,7 +357,26 @@ TOKEN=$(curl -s -X POST http://localhost:8001/login   -H "Content-Type: applicat
 
 ---
 
-## 5. Notes
+## 5. Running tests
 
-- The project still needs tests case and some coverage about the edge cases...
-- If you need any help or are having any issue with it, contact `rafael.cr.carneiro@gmail.com` for assistance.
+There are some unit tests in the repository. To run them execute: `(WIP)`
+
+```bash
+go test ./...
+```
+
+Add more tests and edge case coverage as needed.
+
+---
+
+## 6. Troubleshooting
+
+- If the server cannot connect to Postgres, verify `DATABASE_URL` and that the Docker container is running.
+- If OAuth callback fails, confirm the Google Cloud Console redirect URI exactly matches `URL_CALLBACK` in `.env.example`.
+- When switching ports make sure the `.env.example` ports and any URLs (callback) are consistent across commands and provider settings.
+
+---
+
+## 7. Contact
+
+If you need help or are having issues with the project, contact: `rafael.cr.carneiro@gmail.com`.
