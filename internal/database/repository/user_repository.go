@@ -2,6 +2,9 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
+
+	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
 )
 
 type UserRepository struct {
@@ -21,6 +24,50 @@ func NewUserRepository(conn *sql.DB) *UserRepository {
 	return &UserRepository{
 		db: conn,
 	}
+}
+
+// FindAllUsers search for all the users without a filter
+// using a pagination method based on cursor, has a pointer
+// to the next record from the database.
+//
+// returns a slice of User, the total of records in the database
+// and an Error if any.
+func (repo *UserRepository) FindAllUsersCursor(cursor int64, size int) ([]User, int64, error) {
+	query := `
+		SELECT id, username, age
+		FROM users
+		WHERE id >= $1
+		ORDER BY id ASC
+		LIMIT $2;
+	`
+	rows, err := repo.db.Query(query, cursor, size)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	users := make([]User, 0, size)
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.Id, &u.Username, &u.Age); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	var nextCursor int64
+	if len(users) == size {
+		nextCursor = *(users[len(users)-1].Id)
+		users = users[:len(users)-1]
+	} else {
+		nextCursor = 0
+	}
+
+	return users, nextCursor, nil
 }
 
 // FindAllUsers search for all the users without a filter
