@@ -20,6 +20,10 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 		r.Post("/login", app.AuthService.LoginJwtRefreshBased)
 		r.Post("/renew", app.AuthService.RenewAccessToken)
 		r.Post("/revoke/{id}", app.AuthService.RevokeSession)
+	case api.OAuth2:
+		r.Get("/auth/{prodiver}/callback", app.AuthService.GetAuthCallbackOAuth2)
+		r.Get("/logout/{provider}", app.AuthService.LogoutOAuth2)
+		r.Get("/auth/{provider}", app.AuthService.GetAuthOAuth2)
 	default:
 		app.Logger.Fatalln("No authentication method was chosen.")
 	}
@@ -35,6 +39,8 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 				r.Use(app.Middleware.JwtBased)
 			case api.JwtRefreshBased:
 				r.Use(app.Middleware.JwtRefreshBased)
+			case api.OAuth2:
+
 			default:
 				app.Logger.Fatal("No authentication method was chosen.")
 			}
