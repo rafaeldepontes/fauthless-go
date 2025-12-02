@@ -45,7 +45,10 @@ func Handler(r *chi.Mux, app *api.Application, typeOf int) {
 				app.Logger.Fatal("No authentication method was chosen.")
 			}
 
-			r.Get("/users", app.UserService.FindAllUsers)
+			// I could have done this in the same request, but for the learning purposes,
+			// I'm doing it separately.
+			r.Get("/users/cursor-pagination", app.UserService.FindAllUsersCursorPagination)
+			r.Get("/users/offset-pagination", app.UserService.FindAllUsersOffSetPagination)
 			r.Get("/users/{id}", app.UserService.FindUserById)
 
 			switch typeOf {

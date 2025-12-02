@@ -31,6 +31,7 @@ var (
 	ErrParsingToken              = errors.New("Error parsing token")
 	ErrInvalidToken              = errors.New("Token missing or invalid")
 	ErrTokenRevoked              = errors.New("Session token revoked")
+	ErrInvalidType               = errors.New("Unsupported type")
 	ErrInvalidId                 = errors.New("Invalid username, needs to be your own")
 	ErrEqualAge                  = errors.New("The new age should be different from the actual")
 )
