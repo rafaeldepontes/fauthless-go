@@ -28,22 +28,77 @@ func NewUserService(userRepo *repository.UserRepository, logg *log.Logger, cache
 	}
 }
 
+func (s *UserService) FindAllUsersCursorPagination(w http.ResponseWriter, r *http.Request) {
+	s.Logger.Infoln("Listing all the users in the database using the cursor pagination...")
+
+	defaultValueCursor := "100"
+	cursor, err := getQueryParam[int64](r, "cursor", defaultValueCursor)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	defaultValueSize := "25"
+	size, err := getQueryParam[int](r, "size", defaultValueSize)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	if size <= 0 {
+		size = 25
+	}
+	// Don't change this, the size should be +1 so that we can have
+	// the next cursor value
+	size++
+
+	var users []repository.User
+	users, nextCursor, err := s.userRepository.FindAllUsersCursor(cursor, size)
+	if err != nil {
+		errorhandler.BadRequestErrorHandler(w, err, r.URL.Path)
+		s.Logger.Errorf("An error occurred: %v", err)
+		return
+	}
+
+	s.Logger.Infof("Found %v users, the next should be %v", len(users), nextCursor)
+
+	pageModel := pagination.NewCursorPagination(users, size, nextCursor)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(pageModel)
+}
+
 // FindAllUsers list all the users without a filter and returns each
 // one with pagination and a few datas missing for LGPD.
-func (s *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
-	s.Logger.Infoln("Listing all the users in the database...")
+func (s *UserService) FindAllUsersOffSetPagination(w http.ResponseWriter, r *http.Request) {
+	s.Logger.Infoln("Listing all the users in the database using the offset pagination...")
 
-	sizeStr := r.URL.Query().Get("size")
-	if sizeStr == "" {
-		sizeStr = "25"
+	defaultValueSize := "25"
+	size, err := getQueryParam[int](r, "size", defaultValueSize)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
 	}
-	size, _ := strconv.Atoi(sizeStr)
 
-	currentPageStr := r.URL.Query().Get("page")
-	if currentPageStr == "" {
-		currentPageStr = "1"
+	if size <= 0 {
+		size = 25
 	}
-	currentPage, _ := strconv.Atoi(currentPageStr)
+
+	defaultValuePage := "1"
+	currentPage, err := getQueryParam[int](r, "page", defaultValuePage)
+	if err != nil {
+		s.Logger.Errorf("An error occurred: %v", err)
+		errorhandler.InternalErrorHandler(w)
+		return
+	}
+
+	if currentPage <= 0 {
+		currentPage = 1
+	}
 
 	var users []repository.User
 	users, totalRecords, err := s.userRepository.FindAllUsers(size, currentPage)
@@ -53,13 +108,12 @@ func (s *UserService) FindAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pageModel := pagination.NewPagination(users, uint(currentPage), uint(totalRecords), uint(size))
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	pageModel := pagination.NewOffSetPagination(users, uint(currentPage), uint(totalRecords), uint(size))
 
 	s.Logger.Infof("Found %v users from a total of %v", len(users), totalRecords)
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(pageModel)
 }
 
@@ -76,7 +130,7 @@ func (s *UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pathId, _ := strconv.Atoi(idStr)
-	id := uint(pathId)
+	id := int64(pathId)
 
 	var user *repository.User
 	user, err := s.userRepository.FindUserById(id)
@@ -85,6 +139,8 @@ func (s *UserService) FindUserById(w http.ResponseWriter, r *http.Request) {
 		s.Logger.Errorf("An error occurred: %v", err)
 		return
 	}
+
+	s.Logger.Infof("User found! username: %v\n", *user.Id)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -151,6 +207,8 @@ func (s *UserService) UpdateUserDetails(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	s.Logger.Infof("User updated successfully! username: %v\n", *user.Id)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
@@ -168,6 +226,8 @@ func (s *UserService) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.Logger.Infof("Account deleted successfully")
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 	json.NewEncoder(w).Encode("Account deleted successfully")
@@ -183,4 +243,44 @@ func isValidUserDetails(user *repository.User, userRequest *domain.UserDetails) 
 	}
 
 	return nil
+}
+
+func getQueryParam[T int | int64 | string | bool | float64](r *http.Request, key string, defaultVal string) (T, error) {
+	valStr := r.URL.Query().Get(key)
+	if valStr == "" {
+		valStr = defaultVal
+	}
+
+	var zeroVal T
+
+	switch any(zeroVal).(type) {
+	case int:
+		value, err := strconv.Atoi(valStr)
+		if err != nil {
+			return zeroVal, err
+		}
+		return any(value).(T), nil
+	case int64:
+		value, err := strconv.ParseInt(valStr, 10, 64)
+		if err != nil {
+			return zeroVal, err
+		}
+		return any(value).(T), nil
+	case bool:
+		value, err := strconv.ParseBool(valStr)
+		if err != nil {
+			return zeroVal, err
+		}
+		return any(value).(T), nil
+	case float64:
+		value, err := strconv.ParseBool(valStr)
+		if err != nil {
+			return zeroVal, err
+		}
+		return any(value).(T), nil
+	case string:
+		return any(valStr).(T), nil
+	default:
+		return zeroVal, errorhandler.ErrInvalidType
+	}
 }
