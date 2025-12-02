@@ -11,13 +11,13 @@ env:
 
 jobs:
   build:
-    name: Build binaries (matrix)
+    name: Build binaries
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         os_label: [windows, linux, mac]
-        target: [jwt-refresh-based, jwt-based, cookie-based]
+        target: [jwt-refresh-based, jwt-based, cookie-based, oauth]
 
     steps:
       - uses: actions/checkout@v4
