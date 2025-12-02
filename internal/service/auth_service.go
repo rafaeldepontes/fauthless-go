@@ -1,16 +1,21 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	httpTemplate "html/template"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/markbates/goth/gothic"
 	"github.com/rafaeldepontes/auth-go/internal/database/repository"
 	"github.com/rafaeldepontes/auth-go/internal/domain"
 	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
 	"github.com/rafaeldepontes/auth-go/internal/storage"
+	"github.com/rafaeldepontes/auth-go/internal/template"
 	"github.com/rafaeldepontes/auth-go/internal/token"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -294,6 +299,39 @@ func (s *AuthService) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *AuthService) GetAuthCallbackOAuth2(w http.ResponseWriter, r *http.Request) {
+	provider := chi.URLParam(r, "provider")
+
+	r = r.WithContext(context.WithValue(context.Background(), "provider", provider))
+
+	user, err := gothic.CompleteUserAuth(w, r)
+	if err != nil {
+		s.Logger.Infoln(w, err)
+		return
+	}
+
+	s.Logger.Infoln(user)
+
+	t, _ := httpTemplate.New("foo").Parse(template.UserTemplate)
+	t.Execute(w, user)
+}
+
+func (s *AuthService) LogoutOAuth2(w http.ResponseWriter, r *http.Request) {
+	gothic.Logout(w, r)
+	w.Header().Set("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (s *AuthService) GetAuthOAuth2(w http.ResponseWriter, r *http.Request) {
+	if gothUser, err := gothic.CompleteUserAuth(w, r); err == nil {
+		s.Logger.Infoln(gothUser)
+		t, _ := httpTemplate.New("foo").Parse(template.UserTemplate)
+		t.Execute(w, gothUser)
+	} else {
+		gothic.BeginAuthHandler(w, r)
+	}
 }
 
 func isValidUser(newUser *repository.User, s *AuthService) (bool, error) {
