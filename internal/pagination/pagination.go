@@ -1,13 +1,6 @@
 package pagination
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
-	"hash"
-	"os"
-
 	"github.com/rafaeldepontes/auth-go/internal/domain"
 )
 
@@ -36,35 +29,4 @@ func NewCursorPagination[T any](data []T, size int, nextCursor int64) *domain.Cu
 		Size:       size,
 		NextCursor: nextCursor,
 	}
-}
-
-// NewCursorHashedPagination accepts a generic T type, a slice of any data, a size of records per page and
-// the next page being a pointer to the next id in the database and it will return a CursorHashedPagination
-// which is basically a hash with all the information needed in the next request for security.
-func NewCursorHashedPagination[T any](data []T, size int, nextCursor int64) (*domain.CursorHashedPagination[T], error) {
-	var hashedData string
-
-	rawData := domain.CursorPagination[T]{
-		Data:       data,
-		Size:       size,
-		NextCursor: nextCursor,
-	}
-
-	sb, err := json.Marshal(rawData)
-	if err != nil {
-		return nil, err
-	}
-
-	secretKey := os.Getenv("SECRET_CURSOR_KEY")
-	var mac hash.Hash = hmac.New(sha256.New, []byte(secretKey))
-	mac.Write(sb)
-	signature := mac.Sum(nil)
-
-	combined := append(sb, signature...)
-
-	hashedData = base64.RawURLEncoding.EncodeToString(combined)
-
-	return &domain.CursorHashedPagination[T]{
-		NextCursor: hashedData,
-	}, nil
 }
