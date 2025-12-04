@@ -14,10 +14,16 @@ type CursorPagination[T any] struct {
 	NextCursor int64 `json:"next_cursor"`
 }
 
+type CursorBody struct {
+	Size       int   `json:"size"`
+	NextCursor int64 `json:"next_cursor"`
+}
+
 type CursorResquest struct {
-	Cursor string `json:"cursor"`
+	HashedCursor string `json:"cursor"`
 }
 
 type CursorHashedPagination[T any] struct {
+	Data       []T    `json:"data"`
 	NextCursor string `json:"next_cursor"`
 }
