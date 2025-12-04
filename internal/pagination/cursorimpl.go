@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"hash"
 	"os"
 	"strconv"
@@ -32,9 +31,8 @@ func NewCursorService[T any]() *cursorService[T] {
 // Encode accepts a generic T type, a slice of any data, a size of records per page and
 // the next page being a pointer to the next id in the database and it will return a hash
 // with all the information needed in the next request for security.
-func (s *cursorService[T]) Encode(data []T, size int, nextCursor int64) (string, error) {
-	rawData := domain.CursorPagination[T]{
-		Data:       data,
+func (s *cursorService[T]) Encode(size int, nextCursor int64) (string, error) {
+	rawData := domain.CursorBody{
 		Size:       size,
 		NextCursor: nextCursor,
 	}
@@ -56,7 +54,7 @@ func (s *cursorService[T]) Encode(data []T, size int, nextCursor int64) (string,
 
 // Decode accepts a hashed source to decode, it will return the CursorPagination with the
 // T type generic specified previously and an error if any.
-func (s *cursorService[T]) Decode(src string) (*domain.CursorPagination[T], error) {
+func (s *cursorService[T]) Decode(src string) (*domain.CursorBody, error) {
 	combined, err := base64.RawURLEncoding.DecodeString(src)
 	if err != nil {
 		return nil, err
@@ -77,11 +75,8 @@ func (s *cursorService[T]) Decode(src string) (*domain.CursorPagination[T], erro
 		return nil, errorhandler.ErrInvalidCursorSignature
 	}
 
-	var cursorModel domain.CursorPagination[T]
+	var cursorModel domain.CursorBody
 	json.Unmarshal(jsonBody, &cursorModel)
-
-	fmt.Println(string(jsonBody))
-	fmt.Println(cursorModel)
 
 	return &cursorModel, nil
 }
