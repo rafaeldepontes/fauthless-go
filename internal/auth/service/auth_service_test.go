@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rafaeldepontes/auth-go/internal/auth"
 	"github.com/rafaeldepontes/auth-go/internal/cache"
@@ -293,15 +294,115 @@ func TestLoginCookieBased_Success(t *testing.T) {
 	}
 }
 
-// TODO: WIP!
 // TestLoginJwtBased_Success verifies LoginJwtBased and expects a
 // success when log in and a token in the request body.
-// func TestLoginJwtBased_Success(t *testing.T) {
-// 	// given
-// 	auth, userRepo, _, _ := prepareMocks()
-// 	w, r := loginFlowMock(userRepo)
+func TestLoginJwtBased_Success(t *testing.T) {
+	// given
+	auth, userRepo, _, _ := prepareMocks()
+	w, r := loginFlowMock(userRepo)
 
-// 	// when
-// 	auth.LoginJwtBased(w, r)
-// 	resp := w.Result()
-// }
+	// when
+	auth.LoginJwtBased(w, r)
+	resp := w.Result()
+
+	var tr domain.TokenResponse
+
+	// then
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		t.Fatalf("failed decoding token response: %v", err)
+	}
+
+	if tr.Token == "" {
+		t.Fatalf("expected token in response")
+	}
+}
+
+// TestLoginJwtBased_Success verifies LoginJwtRefreshBased and expects a
+// success when log in and a access token, a refresh token, the time both
+// will expire and the session id in the request body.
+func TestLoginJwtRefreshBased_Success(t *testing.T) {
+	// given
+	auth, userRepo, sessionRepo, _ := prepareMocks()
+	w, r := loginFlowMock(userRepo)
+
+	// when
+	auth.LoginJwtRefreshBased(w, r)
+	resp := w.Result()
+
+	var tr domain.TokenRefreshResponse
+
+	// then
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		t.Fatalf("failed decoding token response: %v", err)
+	}
+
+	if tr.AccessToken == "" {
+		t.Fatalf("expected access token in response")
+	}
+
+	if tr.RefreshToken == "" {
+		t.Fatalf("expected refresh token in response")
+	}
+
+	if _, err := sessionRepo.FindSessionById(tr.SessionId); err != nil {
+		t.Fatalf("Got an error trying to get the session by its id: %v", err)
+	}
+}
+
+// TestRenewAccessToken_Success verifies RenewAccessToken and expects
+// success when trying to renew your access token. In the request
+// it should contain the refresh token to validation and returns
+// a new access token.
+func TestRenewAccessToken_Success(t *testing.T) {
+	// given
+	auth, userRepo, _, _ := prepareMocks()
+
+	w, r := loginFlowMock(userRepo)
+	auth.LoginJwtRefreshBased(w, r)
+	resp := w.Result()
+
+	var tr domain.TokenRefreshResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		t.Fatalf("failed decoding token response: %v", err)
+	}
+
+	newAccessTokenReq := domain.RenewAccessTokenRequest{
+		RefreshToken: tr.RefreshToken,
+	}
+	jsonReq, _ := json.Marshal(newAccessTokenReq)
+
+	var req *http.Request = httptest.NewRequest(http.MethodPost, "/renew", bytes.NewReader(jsonReq))
+	var rr *httptest.ResponseRecorder = httptest.NewRecorder()
+
+	// when
+	auth.RenewAccessToken(rr, req)
+	resp = rr.Result()
+
+	var ratr domain.RenewAccessTokenResponse
+
+	// then
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 201 Created, got %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&ratr); err != nil {
+		t.Fatalf("failed decoding token response: %v", err)
+	}
+
+	if ratr.AccessToken == "" {
+		t.Fatal("expected new access token in response")
+	}
+
+	if ratr.AccessTokenExpiresAt.Equal(time.Time{}) {
+		t.Fatal("expected new expire date for the access token in response")
+	}
+}
