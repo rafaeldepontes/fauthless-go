@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -28,20 +29,30 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
 
-      - name: Verify modules
+      - name: Get dependencies
         run: go mod download
 
-      - name: go vet
+      - name: Run vet
         run: go vet ./...
 
       - name: Run tests (with coverage)
         run: |
+          pwd
           mkdir -p testresults
-          go test -v ./... -coverprofile=coverage.out
+
+          go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+
+          if [ ! -s coverage.out ]; then
+            echo "coverage.out is missing or empty!"
+            ls -la
+            cat coverage.out || true
+            exit 1
+          fi
+
           go tool cover -func=coverage.out | tee testresults/coverage.txt
 
       - name: Upload test coverage artifact
