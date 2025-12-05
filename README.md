@@ -2,9 +2,10 @@
 
 [![language](https://img.shields.io/badge/language-Go-00ADD8?labelColor=2F2F2F)](https://go.dev/doc/)
 [![version](https://img.shields.io/badge/version-1.25-9C27B0?labelColor=2F2F2F)](https://go.dev/doc/install)
-[![build](https://img.shields.io/github/actions/workflow/status/rafaeldepontes/fauthless/build.yml?label=build&logo=githubactions&logoColor=white&labelColor=2F2F2F)](https://github.com/rafaeldepontes/fauthless-go/actions/workflows/build.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/rafaeldepontes/fauthless/tests.yml?label=tests&logo=go&logoColor=white&labelColor=2F2F2F)](https://github.com/rafaeldepontes/fauthless-go/actions/workflows/tests.yml)
-[![coverage](https://img.shields.io/codecov/c/github/rafaeldepontes/fauthless-go?label=coverage&logo=codecov&logoColor=white&labelColor=2F2F2F)]()
+[![build](https://img.shields.io/github/actions/workflow/status/rafaeldepontes/fauthless-go/build.yml?label=build&logo=githubactions&logoColor=white&labelColor=2F2F2F)](https://github.com/rafaeldepontes/fauthless-go/actions/workflows/build.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/rafaeldepontes/fauthless-go/tests.yml?label=tests&logo=go&logoColor=white&labelColor=2F2F2F)](https://github.com/rafaeldepontes/fauthless-go/actions/workflows/tests.yml)
+
+<!-- [![coverage](https://codecov.io/gh/rafaeldepontes/fauthless-go/graph/badge.svg?token=YOUR_TOKEN_IF_NEEDED)](https://codecov.io/gh/rafaeldepontes/fauthless-go) -->
 
 <!-- [![lint](https://img.shields.io/github/actions/workflow/status/rafaeldepontes/auth-go/lint.yml?label=lint&logo=golang&logoColor=white&labelColor=2F2F2F)]() -->
 
