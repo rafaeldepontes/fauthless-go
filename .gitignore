@@ -33,3 +33,7 @@ go.work.sum
 
 .github/workflows/lint.yml
 secrets
+
+# Docker
+Dockerfile
+dev-docker-compose.yml
