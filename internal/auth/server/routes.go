@@ -20,7 +20,7 @@ func MapAuthRoutesJwt(r *chi.Mux, controller *auth.Controller) {
 func MapAuthRoutesJwtRefresh(r *chi.Mux, controller *auth.Controller) {
 	(*r).Post("/login", (*controller).LoginJwtRefreshBasedEp)
 	(*r).Post("/renew", (*controller).RenewAccessTokenEp)
-	(*r).Post("/revoke/{id}", (*controller).RevokeSessionEp)
+	(*r).Patch("/revoke/{id}", (*controller).RevokeSessionEp)
 }
 
 func MapAuthRoutesOAuth2(r *chi.Mux, controller *auth.Controller) {
