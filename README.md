@@ -95,7 +95,7 @@ SIGNATURE_LENGTH="32" # Default length for sha256
 
    ```bash
    git clone <repo-url>
-   cd go-full-crud
+   cd fauthless-go
    ```
 
 2. Create a `.env` file (or use the provided `.env.example`) and set `DATABASE_URL`, `JWT_PORT`, `COOKIE_PORT` and `JWT_REFRESH_PORT` as needed.
@@ -103,7 +103,7 @@ SIGNATURE_LENGTH="32" # Default length for sha256
 3. Start PostgreSQL with Docker:
 
    ```bash
-   docker run --name go-postgres -e POSTGRES_PASSWORD=example -e POSTGRES_USER=root -e POSTGRES_DB=golang-database -p 5432:5432 -d postgres:15
+   docker run --name postgres -e POSTGRES_PASSWORD=example -e POSTGRES_USER=root -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:15
    ```
 
    Adjust user/password/db name to match your `DATABASE_URL` if necessary.
