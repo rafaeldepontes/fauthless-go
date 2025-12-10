@@ -3,9 +3,9 @@ package handler
 import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/rafaeldepontes/auth-go/api"
-	authServer "github.com/rafaeldepontes/auth-go/internal/auth/server"
-	"github.com/rafaeldepontes/auth-go/internal/user/server"
+	"github.com/rafaeldepontes/fauthless-go/api"
+	authServer "github.com/rafaeldepontes/fauthless-go/internal/auth/server"
+	"github.com/rafaeldepontes/fauthless-go/internal/user/server"
 )
 
 // Handler controls the system routes based on *chi.Mux and a configuration struct.

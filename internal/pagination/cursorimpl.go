@@ -9,8 +9,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/rafaeldepontes/auth-go/internal/domain"
-	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
 )
 
 type cursorService[T any] struct {

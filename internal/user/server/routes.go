@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/rafaeldepontes/auth-go/internal/user"
+	"github.com/rafaeldepontes/fauthless-go/internal/user"
 )
 
 func MapUserRoutes(route *chi.Router, controller *user.Controller) {

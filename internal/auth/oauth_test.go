@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"github.com/rafaeldepontes/auth-go/configs"
+	"github.com/rafaeldepontes/fauthless-go/configs"
 )
 
 const (

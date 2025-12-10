@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rafaeldepontes/auth-go/internal/auth"
-	"github.com/rafaeldepontes/auth-go/internal/cache"
-	"github.com/rafaeldepontes/auth-go/internal/domain"
-	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
+	"github.com/rafaeldepontes/fauthless-go/internal/auth"
+	"github.com/rafaeldepontes/fauthless-go/internal/cache"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )

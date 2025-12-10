@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
-	"github.com/rafaeldepontes/auth-go/internal/cache"
-	jwt "github.com/rafaeldepontes/auth-go/internal/token"
+	"github.com/rafaeldepontes/fauthless-go/internal/cache"
+	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
+	jwt "github.com/rafaeldepontes/fauthless-go/internal/token"
 )
 
 type Middleware struct {

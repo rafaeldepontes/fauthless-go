@@ -3,8 +3,8 @@ package repository
 import (
 	"database/sql"
 
-	"github.com/rafaeldepontes/auth-go/internal/auth"
-	"github.com/rafaeldepontes/auth-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/auth"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
 )
 
 type sessionRepository struct {

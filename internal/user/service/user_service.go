@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rafaeldepontes/auth-go/internal/cache"
-	"github.com/rafaeldepontes/auth-go/internal/domain"
-	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
-	"github.com/rafaeldepontes/auth-go/internal/pagination"
-	"github.com/rafaeldepontes/auth-go/internal/user"
+	"github.com/rafaeldepontes/fauthless-go/internal/cache"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
+	"github.com/rafaeldepontes/fauthless-go/internal/pagination"
+	"github.com/rafaeldepontes/fauthless-go/internal/user"
 	log "github.com/sirupsen/logrus"
 )
 

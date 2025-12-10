@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/rafaeldepontes/auth-go/internal/auth"
-	"github.com/rafaeldepontes/auth-go/internal/middleware"
-	"github.com/rafaeldepontes/auth-go/internal/user"
+	"github.com/rafaeldepontes/fauthless-go/internal/auth"
+	"github.com/rafaeldepontes/fauthless-go/internal/middleware"
+	"github.com/rafaeldepontes/fauthless-go/internal/user"
 	log "github.com/sirupsen/logrus"
 )
 

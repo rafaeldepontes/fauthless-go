@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/rafaeldepontes/auth-go/internal/domain"
-	"github.com/rafaeldepontes/auth-go/internal/errorhandler"
-	"github.com/rafaeldepontes/auth-go/internal/user"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
+	"github.com/rafaeldepontes/fauthless-go/internal/user"
 )
 
 type userRepository struct {

@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/rafaeldepontes/auth-go/internal/auth"
+	"github.com/rafaeldepontes/fauthless-go/internal/auth"
 )
 
 type authController struct {

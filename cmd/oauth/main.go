@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/rafaeldepontes/auth-go/api"
-	"github.com/rafaeldepontes/auth-go/configs"
-	"github.com/rafaeldepontes/auth-go/internal/handler"
+	"github.com/rafaeldepontes/fauthless-go/api"
+	"github.com/rafaeldepontes/fauthless-go/configs"
+	"github.com/rafaeldepontes/fauthless-go/internal/handler"
 )
 
 func main() {

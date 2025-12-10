@@ -1,6 +1,6 @@
 package user
 
-import "github.com/rafaeldepontes/auth-go/internal/domain"
+import "github.com/rafaeldepontes/fauthless-go/internal/domain"
 
 type Repository interface {
 	FindAllUsersCursor(cursor int64, size int) ([]domain.User, int64, error)

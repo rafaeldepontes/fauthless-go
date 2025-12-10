@@ -6,7 +6,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 
-	"github.com/rafaeldepontes/auth-go/configs"
+	"github.com/rafaeldepontes/fauthless-go/configs"
 )
 
 const (

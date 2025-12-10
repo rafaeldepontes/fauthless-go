@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/rafaeldepontes/auth-go/internal/user"
+	"github.com/rafaeldepontes/fauthless-go/internal/user"
 )
 
 type userController struct {

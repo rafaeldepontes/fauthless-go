@@ -1,7 +1,7 @@
 package pagination
 
 import (
-	"github.com/rafaeldepontes/auth-go/internal/domain"
+	"github.com/rafaeldepontes/fauthless-go/internal/domain"
 )
 
 // NewOffSetPagination accepts a generic T type, a slice of any data, a current number of pages,
