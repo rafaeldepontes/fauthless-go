@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	httpTemplate "html/template"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,7 +14,6 @@ import (
 	"github.com/rafaeldepontes/fauthless-go/internal/cache"
 	"github.com/rafaeldepontes/fauthless-go/internal/domain"
 	"github.com/rafaeldepontes/fauthless-go/internal/errorhandler"
-	"github.com/rafaeldepontes/fauthless-go/internal/template"
 	"github.com/rafaeldepontes/fauthless-go/internal/token"
 	"github.com/rafaeldepontes/fauthless-go/internal/user"
 	log "github.com/sirupsen/logrus"
@@ -314,9 +312,6 @@ func (s *authService) GetAuthCallbackOAuth2(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.Logger.Infoln(user)
-
-	t, _ := httpTemplate.New("foo").Parse(template.UserTemplate)
-	t.Execute(w, user)
 }
 
 func (s *authService) LogoutOAuth2(w http.ResponseWriter, r *http.Request) {
@@ -328,8 +323,6 @@ func (s *authService) LogoutOAuth2(w http.ResponseWriter, r *http.Request) {
 func (s *authService) GetAuthOAuth2(w http.ResponseWriter, r *http.Request) {
 	if gothUser, err := gothic.CompleteUserAuth(w, r); err == nil {
 		s.Logger.Infoln(gothUser)
-		t, _ := httpTemplate.New("foo").Parse(template.UserTemplate)
-		t.Execute(w, gothUser)
 	} else {
 		gothic.BeginAuthHandler(w, r)
 	}
