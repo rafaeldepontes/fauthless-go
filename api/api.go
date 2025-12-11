@@ -13,6 +13,7 @@ import (
 	authService "github.com/rafaeldepontes/fauthless-go/internal/auth/service"
 	"github.com/rafaeldepontes/fauthless-go/internal/cache"
 	"github.com/rafaeldepontes/fauthless-go/internal/middleware"
+	"github.com/rafaeldepontes/fauthless-go/internal/tool"
 	"github.com/rafaeldepontes/fauthless-go/internal/user"
 	userRepository "github.com/rafaeldepontes/fauthless-go/internal/user/repository"
 	userServer "github.com/rafaeldepontes/fauthless-go/internal/user/server"
@@ -49,7 +50,13 @@ func initLogger() *log.Logger {
 // Init initialize all the resources needed for the server run properly.
 func Init() (*configs.Configuration, *Application, *sql.DB, error) {
 	var logger *log.Logger = initLogger()
-	godotenv.Load(".env", ".env.example")
+	envFile := ".env"
+	tool.ChecksEnvFile(&envFile)
+
+	err := godotenv.Load(envFile)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	config := &configs.Configuration{
 		JwtSecretKey:        os.Getenv("JWT_SECRET_KEY"),
