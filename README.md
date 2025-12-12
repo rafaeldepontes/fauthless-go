@@ -32,30 +32,6 @@ This is an area of ​​study aimed at testing different ways to create an auth
 - Docker (for running PostgreSQL locally) or an accessible Postgres instance
 - Make sure the `DATABASE_URL` environment variable points to a reachable Postgres database
 
-## Database Schema
-
-Use the schema below to initialize the database:
-
-```sql
-CREATE TABLE IF NOT EXISTS users (
-  id BIGSERIAL PRIMARY KEY,
-  username VARCHAR(50) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  session_token VARCHAR(255),
-  csrf_token VARCHAR(255),
-  age INT not null
- );
-
-CREATE TABLE IF NOT EXISTS sessions (
-  id VARCHAR(255) PRIMARY KEY NOT NULL,
-  username VARCHAR(50) NOT NULL,
-  is_revoked BOOL NOT null default false,
-  refresh_token VARCHAR(512) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  expires_at TIMESTAMP
- );
-```
-
 ## Environment variables
 
 Create a `.env` file (example provided in the project). The service expects at least:
@@ -89,6 +65,30 @@ SECRET_CURSOR_KEY="<your-secret-key-for-cursor-hash>"
 SIGNATURE_LENGTH="32" # Default length for sha256
 ```
 
+## Database Schema
+
+Use the schema below to initialize the database:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id BIGSERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  session_token VARCHAR(255),
+  csrf_token VARCHAR(255),
+  age INT not null
+ );
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id VARCHAR(255) PRIMARY KEY NOT NULL,
+  username VARCHAR(50) NOT NULL,
+  is_revoked BOOL NOT null default false,
+  refresh_token VARCHAR(512) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP
+ );
+```
+
 ## How to use
 
 1. Clone the repo:
@@ -116,7 +116,7 @@ SIGNATURE_LENGTH="32" # Default length for sha256
 5. Run the service:
 
    ```bash
-   # from the project root
+   # from the project root if you dont want to use Docker. If so, change the env variable to point to localhost instead of postgres.
    go run cmd/cookie-based/main.go         # This one for the Cookie token with csrf protection.
    go run cmd/jwt-based/main.go            # This one for the JWT but without the refresh token, only the expiration time
    go run cmd/jwt-refresh-based/main.go    # This one for the JWT with refresh token.
@@ -152,7 +152,7 @@ Base path: `/api/v1`
 ```json
 {
   "username": "alice",
-  "hashed_password": "plainPassword123",
+  "password": "plainPassword123",
   "age": 30
 }
 ```
@@ -160,14 +160,14 @@ Base path: `/api/v1`
 **Example**
 
 ```bash
-curl -i -X POST http://localhost:8000/register   -H "Content-Type: application/json"   -d '{"username":"alice","hashed_password":"plainPassword123","age":30}'
+curl -i -X POST http://localhost:8000/register   -H "Content-Type: application/json"   -d '{"username":"alice","password":"plainPassword123","age":30}'
 ```
 
 ---
 
 ## 2. Authentication Methods
 
-Your server can run in one of three modes:
+Your server can run in one of four modes:
 
 - Cookie-based | `COOKIE_PORT=8000`
 
@@ -187,17 +187,24 @@ Your server can run in one of three modes:
 
 Creates: - `session_token` cookie (HttpOnly) - `crsf_token` cookie
 
+**Body**
+
+```json
+{
+  "username": "alice",
+  "password": "plainPassword123"
+}
+```
+
 **Example**
 
 ```bash
 curl -i -c cookies.txt -X POST http://localhost:8000/login   -H "Content-Type: application/json"   -d '{"username":"alice","password":"plainPassword123"}'
 ```
 
-Read CSRF token:
+After the log in, you need to get the CSRF token on the cookies response.
 
-```bash
-CRSF=$(awk '/csrf_token/ {print $7}' cookies.txt)
-```
+Also add into the Header a "X-CSRF-Token" with the token value.
 
 ### Access Protected Routes
 
