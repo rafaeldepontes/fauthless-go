@@ -104,6 +104,8 @@ SIGNATURE_LENGTH="32" # Default length for sha256
 
    ```bash
    docker run --name postgres -e POSTGRES_PASSWORD=example -e POSTGRES_USER=root -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:15
+   # OR
+   docker-compose up -d
    ```
 
    Adjust user/password/db name to match your `DATABASE_URL` if necessary.
