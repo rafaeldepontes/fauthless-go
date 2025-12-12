@@ -96,6 +96,7 @@ SIGNATURE_LENGTH="32" # Default length for sha256
    ```bash
    git clone <repo-url>
    cd fauthless-go
+   go mod tidy
    ```
 
 2. Create a `.env` file (or use the provided `.env.example`) and set `DATABASE_URL`, `JWT_PORT`, `COOKIE_PORT` and `JWT_REFRESH_PORT` as needed.
