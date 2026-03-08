@@ -125,6 +125,9 @@ func loginFlowMock(userRepo *userRepoMock) (*httptest.ResponseRecorder, *http.Re
 	var r *http.Request = httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(jsonReq))
 	var w *httptest.ResponseRecorder = httptest.NewRecorder()
 
+	// Using bcrypt instead of argo because it's simpler and faster. And also because this is
+	// just a POC! This isn't the actual production code... If I were to use a REAL hash
+	// algorithm, I would obviously choose Argo with ArgoID and also a pepper..
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(hashedPasswordMock), Cost)
 	u := &domain.User{
 		Id:             ptrInt64(1),
